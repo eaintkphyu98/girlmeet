@@ -49,8 +49,6 @@ function initDates() {
   const today  = new Date();
   const endDef = new Date(today);
   endDef.setDate(endDef.getDate() + 6);
-  const maxEnd = new Date(today);
-  maxEnd.setDate(maxEnd.getDate() + 13);
 
   const startInput = document.getElementById('startDate');
   const endInput   = document.getElementById('endDate');
@@ -59,16 +57,10 @@ function initDates() {
   startInput.min   = toISODate(today);
   endInput.value   = toISODate(endDef);
   endInput.min     = toISODate(today);
-  endInput.max     = toISODate(maxEnd);
 
   startInput.addEventListener('change', () => {
-    const start  = new Date(startInput.value + 'T00:00:00');
-    const newMax = new Date(start);
-    newMax.setDate(newMax.getDate() + 13);
-    endInput.min = toISODate(start);
-    endInput.max = toISODate(newMax);
+    endInput.min = startInput.value;
     if (endInput.value < startInput.value) endInput.value = startInput.value;
-    if (endInput.value > toISODate(newMax)) endInput.value = toISODate(newMax);
   });
 }
 
@@ -86,8 +78,6 @@ async function createEvent() {
   if (!endDate)             { showToast('pick an end date! 📅'); return; }
   if (startDate > endDate)  { showToast('end date must be after start date!'); return; }
 
-  const diffDays = (new Date(endDate) - new Date(startDate)) / 86_400_000;
-  if (diffDays > 13)        { showToast('max range is 2 weeks (14 days)!'); return; }
   if (startTime >= endTime) { showToast('end time must be after start time!'); return; }
 
   const btn = document.getElementById('createBtn');
