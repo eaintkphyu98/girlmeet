@@ -192,24 +192,6 @@ function renderMyGrid() {
     });
   });
 
-  // Only mousedown/touchstart go on the grid — move/up are on document (set up once)
-  grid.addEventListener('mousedown', e => {
-    const cell = e.target.closest('.my-cell');
-    if (!cell) return;
-    e.preventDefault();
-    isDragging = true;
-    dragMode   = cell.classList.contains('selected') ? 'deselect' : 'select';
-    toggleCell(cell);
-  });
-
-  grid.addEventListener('touchstart', e => {
-    const t    = e.touches[0];
-    const cell = document.elementFromPoint(t.clientX, t.clientY)?.closest('.my-cell');
-    if (!cell) return;
-    isDragging = true;
-    dragMode   = cell.classList.contains('selected') ? 'deselect' : 'select';
-    toggleCell(cell);
-  }, { passive: true });
 }
 
 // ── Load & save availability ──────────────────────────────────
@@ -449,7 +431,30 @@ async function init() {
 // ── Boot ──────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
-  setupDragHandlers();   // document-level drag listeners, set up once
+  setupDragHandlers();
+
+  // Grid mousedown/touchstart set up ONCE here — renderMyGrid() is called
+  // multiple times so putting listeners there causes duplicates that cancel each other out
+  const grid = document.getElementById('myGrid');
+
+  grid.addEventListener('mousedown', e => {
+    const cell = e.target.closest('.my-cell');
+    if (!cell) return;
+    e.preventDefault();
+    isDragging = true;
+    dragMode   = cell.classList.contains('selected') ? 'deselect' : 'select';
+    toggleCell(cell);
+  });
+
+  grid.addEventListener('touchstart', e => {
+    const t    = e.touches[0];
+    const cell = document.elementFromPoint(t.clientX, t.clientY)?.closest('.my-cell');
+    if (!cell) return;
+    isDragging = true;
+    dragMode   = cell.classList.contains('selected') ? 'deselect' : 'select';
+    toggleCell(cell);
+  }, { passive: true });
+
   initModal();
   document.getElementById('saveBtn').addEventListener('click', saveAvailability);
   document.getElementById('userBubble').addEventListener('click', showModal);
