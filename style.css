@@ -510,6 +510,9 @@ body {
   border-top: 1.5px solid var(--border);
 }
 
+/* Prevent scroll from fighting touch drag */
+.my-grid { touch-action: none; }
+
 /* My grid */
 .my-grid .grid-cell            { background: #FFF5F8; }
 .my-grid .grid-cell:hover      { background: #FFD6E8; }
@@ -652,6 +655,34 @@ body {
   background: var(--pink-light);
   border-color: var(--bubblegum);
   transform: scale(1.12);
+}
+
+/* ─── CELL POPUP (tap to see who's free) ─── */
+.cell-popup {
+  position: absolute;
+  background: white;
+  border: 1.5px solid var(--lavender);
+  border-radius: var(--radius);
+  padding: 0.55rem 0.85rem;
+  box-shadow: var(--shadow-lg);
+  z-index: 500;
+  width: 180px;
+  pointer-events: none;
+  animation: modalIn 0.15s ease;
+}
+
+.popup-count {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--lavender-deep);
+  margin-bottom: 0.2rem;
+}
+
+.popup-names {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-soft);
+  line-height: 1.4;
 }
 
 /* ─── TOAST ─── */

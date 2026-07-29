@@ -24,6 +24,7 @@ let mySelection     = new Set();
 let isDragging      = false;
 let dragMode        = null;
 let unsubscribe     = null;
+let popupTimer      = null;
 
 const params  = new URLSearchParams(window.location.search);
 const eventId = params.get('id');
@@ -101,9 +102,9 @@ function saveParticipantLocal(p) {
   localStorage.setItem(`girlmeet_${eventId}`, JSON.stringify(p));
 }
 
-// ── Drag-to-select (set up once on document) ──────────────────
-// Using mousemove + elementFromPoint instead of mouseover —
-// more reliable when mouse button is held down across cells.
+// ── Drag-to-select via Pointer Events ────────────────────────
+// Pointer Events unify mouse + touch in one API and let us
+// prevent scroll conflicts on mobile with touch-action: none (CSS).
 
 function toggleCell(cell) {
   if (!cell?.dataset.key) return;
@@ -117,30 +118,21 @@ function toggleCell(cell) {
 }
 
 function setupDragHandlers() {
-  // Mouse
-  document.addEventListener('mousemove', e => {
+  // pointermove fires for both mouse drag and touch drag
+  document.addEventListener('pointermove', e => {
     if (!isDragging) return;
     const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest('.my-cell');
     toggleCell(cell);
   });
 
-  document.addEventListener('mouseup', () => { isDragging = false; });
-
-  // Touch
-  document.addEventListener('touchmove', e => {
-    if (!isDragging) return;
-    const t    = e.touches[0];
-    const cell = document.elementFromPoint(t.clientX, t.clientY)?.closest('.my-cell');
-    toggleCell(cell);
-  }, { passive: true });
-
-  document.addEventListener('touchend', () => { isDragging = false; }, { passive: true });
+  document.addEventListener('pointerup',     () => { isDragging = false; });
+  document.addEventListener('pointercancel', () => { isDragging = false; });
 }
 
 // ── Render event header ───────────────────────────────────────
 
 function renderEventHeader() {
-  document.title = `${eventData.name} — girlmeet 💕`;
+  document.title = `${eventData.name} — Grad Girls Sync 💕`;
   document.getElementById('eventTitle').textContent     = eventData.name;
   document.getElementById('eventDateRange').textContent = '📅 ' + formatDateRange(eventData.startDate, eventData.endDate);
   document.getElementById('eventTimeRange').textContent = '🕐 ' + formatTime12(eventData.startTime) + ' – ' + formatTime12(eventData.endTime);
@@ -191,7 +183,6 @@ function renderMyGrid() {
       grid.appendChild(cell);
     });
   });
-
 }
 
 // ── Load & save availability ──────────────────────────────────
@@ -251,9 +242,9 @@ function renderParticipants() {
 // ── Group grid (heat map) ─────────────────────────────────────
 
 function heatColor(ratio, count) {
-  if (count === 0) return '#F8F9FF';
-  // baby blue → sky blue → soft lavender → periwinkle
-  const stops = ['#BFDBFE', '#93C5FD', '#DDD6FE', '#A5B4FC'];
+  if (count === 0) return '#F8FAFF';
+  // baby blue → vivid blue → indigo → deep purple — clearly distinct steps
+  const stops = ['#BAE6FD', '#60A5FA', '#6366F1', '#8B5CF6'];
   const scaled = ratio * (stops.length - 1);
   const i = Math.min(Math.floor(scaled), stops.length - 2);
   return lerpColor(stops[i], stops[i + 1], scaled - i);
@@ -263,6 +254,38 @@ function lerpColor(c1, c2, t) {
   const r = (s, i) => parseInt(s.slice(i, i + 2), 16);
   const lerp = (a, b) => Math.round(a + (b - a) * t);
   return `rgb(${lerp(r(c1,1),r(c2,1))},${lerp(r(c1,3),r(c2,3))},${lerp(r(c1,5),r(c2,5))})`;
+}
+
+// ── Group cell tap popup (works on mobile + desktop) ─────────
+
+function showCellPopup(e, count, n, names) {
+  const popup   = document.getElementById('cellPopup');
+  const content = document.getElementById('cellPopupContent');
+
+  if (count > 0) {
+    content.innerHTML = `<div class="popup-count">${count}/${n} free 🌸</div><div class="popup-names">${names}</div>`;
+  } else {
+    content.innerHTML = `<div class="popup-count">0/${n} free</div><div class="popup-names">no one free yet</div>`;
+  }
+
+  // Position: below and centred on the tapped cell, clamped to viewport
+  const rect   = e.currentTarget.getBoundingClientRect();
+  const popupW = 180;
+  let   left   = rect.left + rect.width / 2 - popupW / 2;
+  let   top    = rect.bottom + 6 + window.scrollY;
+
+  left = Math.max(8, Math.min(left, window.innerWidth - popupW - 8));
+
+  popup.style.left    = `${left}px`;
+  popup.style.top     = `${top}px`;
+  popup.style.display = 'block';
+
+  clearTimeout(popupTimer);
+  popupTimer = setTimeout(hideCellPopup, 2500);
+}
+
+function hideCellPopup() {
+  document.getElementById('cellPopup').style.display = 'none';
 }
 
 function renderGroupGrid() {
@@ -306,7 +329,10 @@ function renderGroupGrid() {
         .filter(p => (p.availability || []).includes(key))
         .map(p => `${p.emoji} ${p.name}`)
         .join(', ');
+
+      // Desktop: title tooltip. Both: tap/click popup
       cell.title = count > 0 ? `${count}/${n} free: ${names}` : `0/${n} free`;
+      cell.addEventListener('click', e => showCellPopup(e, count, n, names));
 
       grid.appendChild(cell);
     });
@@ -319,7 +345,7 @@ function renderLegend(n) {
   const legend = document.getElementById('groupLegend');
   if (n === 0) { legend.innerHTML = ''; return; }
   const swatches = [0, 0.25, 0.5, 0.75, 1].map(ratio => {
-    const bg = ratio === 0 ? '#FFF5F8' : heatColor(ratio, Math.round(ratio * n));
+    const bg = ratio === 0 ? '#F8FAFF' : heatColor(ratio, Math.round(ratio * n));
     return `<div class="legend-swatch" style="background:${bg}"></div>`;
   });
   legend.innerHTML = `<span>fewer free</span>${swatches.join('')}<span>more free</span>`;
@@ -433,11 +459,9 @@ async function init() {
 document.addEventListener('DOMContentLoaded', () => {
   setupDragHandlers();
 
-  // Grid mousedown/touchstart set up ONCE here — renderMyGrid() is called
-  // multiple times so putting listeners there causes duplicates that cancel each other out
+  // Pointer Events for drag — set up ONCE, works for mouse AND touch
   const grid = document.getElementById('myGrid');
-
-  grid.addEventListener('mousedown', e => {
+  grid.addEventListener('pointerdown', e => {
     const cell = e.target.closest('.my-cell');
     if (!cell) return;
     e.preventDefault();
@@ -446,14 +470,10 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleCell(cell);
   });
 
-  grid.addEventListener('touchstart', e => {
-    const t    = e.touches[0];
-    const cell = document.elementFromPoint(t.clientX, t.clientY)?.closest('.my-cell');
-    if (!cell) return;
-    isDragging = true;
-    dragMode   = cell.classList.contains('selected') ? 'deselect' : 'select';
-    toggleCell(cell);
-  }, { passive: true });
+  // Dismiss popup when tapping outside a group cell
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.group-cell')) hideCellPopup();
+  });
 
   initModal();
   document.getElementById('saveBtn').addEventListener('click', saveAvailability);
