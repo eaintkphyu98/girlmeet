@@ -101,6 +101,42 @@ function saveParticipantLocal(p) {
   localStorage.setItem(`girlmeet_${eventId}`, JSON.stringify(p));
 }
 
+// ── Drag-to-select (set up once on document) ──────────────────
+// Using mousemove + elementFromPoint instead of mouseover —
+// more reliable when mouse button is held down across cells.
+
+function toggleCell(cell) {
+  if (!cell?.dataset.key) return;
+  if (dragMode === 'select') {
+    mySelection.add(cell.dataset.key);
+    cell.classList.add('selected');
+  } else {
+    mySelection.delete(cell.dataset.key);
+    cell.classList.remove('selected');
+  }
+}
+
+function setupDragHandlers() {
+  // Mouse
+  document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest('.my-cell');
+    toggleCell(cell);
+  });
+
+  document.addEventListener('mouseup', () => { isDragging = false; });
+
+  // Touch
+  document.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    const t    = e.touches[0];
+    const cell = document.elementFromPoint(t.clientX, t.clientY)?.closest('.my-cell');
+    toggleCell(cell);
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => { isDragging = false; }, { passive: true });
+}
+
 // ── Render event header ───────────────────────────────────────
 
 function renderEventHeader() {
@@ -112,14 +148,13 @@ function renderEventHeader() {
   const shareUrl = window.location.href;
   document.getElementById('shareUrl').textContent = shareUrl;
   document.getElementById('copyBtn').addEventListener('click', () => {
-    navigator.clipboard.writeText(shareUrl)
-      .then(() => showToast('link copied! 🌸'));
+    navigator.clipboard.writeText(shareUrl).then(() => showToast('link copied! 🌸'));
   });
 
   ['eventHeaderSection','shareSection','participantsSection','panelsSection'].forEach(id => {
     document.getElementById(id).style.display = '';
   });
-  document.getElementById('saveBar').style.display    = '';
+  document.getElementById('saveBar').style.display     = '';
   document.getElementById('loadingState').style.display = 'none';
 }
 
@@ -157,53 +192,24 @@ function renderMyGrid() {
     });
   });
 
-  attachDragListeners(grid, '.my-cell');
-}
-
-function attachDragListeners(grid, selector) {
-  function toggle(cell) {
-    if (!cell?.dataset.key) return;
-    if (dragMode === 'select') {
-      mySelection.add(cell.dataset.key);
-      cell.classList.add('selected');
-    } else {
-      mySelection.delete(cell.dataset.key);
-      cell.classList.remove('selected');
-    }
-  }
-
+  // Only mousedown/touchstart go on the grid — move/up are on document (set up once)
   grid.addEventListener('mousedown', e => {
-    const cell = e.target.closest(selector);
+    const cell = e.target.closest('.my-cell');
     if (!cell) return;
     e.preventDefault();
     isDragging = true;
     dragMode   = cell.classList.contains('selected') ? 'deselect' : 'select';
-    toggle(cell);
+    toggleCell(cell);
   });
-
-  grid.addEventListener('mouseover', e => {
-    if (!isDragging) return;
-    toggle(e.target.closest(selector));
-  });
-
-  document.addEventListener('mouseup', () => { isDragging = false; }, { passive: true });
 
   grid.addEventListener('touchstart', e => {
     const t    = e.touches[0];
-    const cell = document.elementFromPoint(t.clientX, t.clientY)?.closest(selector);
+    const cell = document.elementFromPoint(t.clientX, t.clientY)?.closest('.my-cell');
     if (!cell) return;
     isDragging = true;
     dragMode   = cell.classList.contains('selected') ? 'deselect' : 'select';
-    toggle(cell);
+    toggleCell(cell);
   }, { passive: true });
-
-  grid.addEventListener('touchmove', e => {
-    if (!isDragging) return;
-    const t = e.touches[0];
-    toggle(document.elementFromPoint(t.clientX, t.clientY)?.closest(selector));
-  }, { passive: true });
-
-  grid.addEventListener('touchend', () => { isDragging = false; }, { passive: true });
 }
 
 // ── Load & save availability ──────────────────────────────────
@@ -440,6 +446,7 @@ async function init() {
 // ── Boot ──────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+  setupDragHandlers();   // document-level drag listeners, set up once
   initModal();
   document.getElementById('saveBtn').addEventListener('click', saveAvailability);
   document.getElementById('userBubble').addEventListener('click', showModal);
