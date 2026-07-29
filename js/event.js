@@ -269,9 +269,12 @@ function renderParticipants() {
 // ── Group grid (heat map) ─────────────────────────────────────
 
 function heatColor(ratio, count) {
-  if (count === 0) return '#FFF5F8';
-  if (ratio <= 0.5) return lerpColor('#FFE4EC', '#FFB7C5', ratio * 2);
-  return lerpColor('#FFB7C5', '#A78BFA', (ratio - 0.5) * 2);
+  if (count === 0) return '#F8F9FF';
+  // baby blue → sky blue → soft lavender → periwinkle
+  const stops = ['#BFDBFE', '#93C5FD', '#DDD6FE', '#A5B4FC'];
+  const scaled = ratio * (stops.length - 1);
+  const i = Math.min(Math.floor(scaled), stops.length - 2);
+  return lerpColor(stops[i], stops[i + 1], scaled - i);
 }
 
 function lerpColor(c1, c2, t) {
