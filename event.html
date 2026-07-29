@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>girlmeet 💕</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── JOIN MODAL ── -->
+<div id="modal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <h2>hey gorgeous! 🌸</h2>
+    <p class="subtitle">tell us who you are and pick your vibe ✨</p>
+
+    <div class="form-group">
+      <label>your name</label>
+      <input type="text" id="participantName" placeholder="your name here..." maxlength="30" autocomplete="off" />
+    </div>
+
+    <div class="form-group">
+      <label>pick your avatar</label>
+      <div id="emojiGrid" class="emoji-grid"></div>
+    </div>
+
+    <button class="btn-primary" id="joinBtn">let's go! 🎀</button>
+  </div>
+</div>
+
+<!-- ── MAIN PAGE ── -->
+<div class="page-wide">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <a href="index.html" class="topbar-logo">girlmeet 💕</a>
+    <div id="userBubble" class="user-bubble" title="click to change name/avatar">
+      loading...
+    </div>
+  </div>
+
+  <!-- Event header -->
+  <div class="event-header" id="eventHeaderSection" style="display:none">
+    <h1 id="eventTitle" class="event-title"></h1>
+    <div class="event-meta">
+      <span id="eventDateRange" class="meta-badge">📅</span>
+      <span id="eventTimeRange" class="meta-badge">🕐</span>
+    </div>
+  </div>
+
+  <!-- Share link -->
+  <div class="share-section" id="shareSection" style="display:none">
+    <span class="share-label">🔗 share with friends</span>
+    <span id="shareUrl" class="share-url"></span>
+    <button id="copyBtn" class="btn-icon">copy link</button>
+  </div>
+
+  <!-- Participants -->
+  <div id="participantsSection" style="display:none">
+    <div class="participants-label">who's in 🌟</div>
+    <div id="participants" class="participants-row"></div>
+  </div>
+
+  <!-- Grid panels -->
+  <div class="panels" id="panelsSection" style="display:none">
+
+    <!-- My availability -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🎀 my availability</div>
+        <div class="panel-subtitle">click &amp; drag to mark when you're free</div>
+      </div>
+      <div class="grid-wrapper">
+        <div id="myGrid" class="avail-grid my-grid"></div>
+      </div>
+    </div>
+
+    <!-- Group availability -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">✨ group availability</div>
+        <div class="panel-subtitle">hover a cell to see who's free — darker = more people</div>
+      </div>
+      <div class="grid-wrapper">
+        <div id="groupGrid" class="avail-grid group-grid"></div>
+      </div>
+      <div id="groupLegend" class="legend"></div>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div id="loadingState" class="loading-state">loading your event... 🌸</div>
+
+</div>
+
+<!-- Floating save button -->
+<div class="save-bar" id="saveBar" style="display:none">
+  <button id="saveBtn" class="save-btn">save my availability 💕</button>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script type="module" src="js/event.js"></script>
+</body>
+</html>
