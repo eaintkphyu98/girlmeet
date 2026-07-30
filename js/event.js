@@ -151,13 +151,14 @@ function renderMyGrid() {
   grid.style.gridTemplateColumns = `52px repeat(${dates.length}, 46px)`;
   grid.innerHTML = '';
 
-  const DAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const DAY   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTH = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   grid.appendChild(el('div', 'grid-corner'));
   dates.forEach(date => {
     const d    = new Date(date + 'T00:00:00');
     const cell = el('div', 'date-header');
-    cell.innerHTML = `<div class="day-name">${DAY[d.getDay()]}</div><div class="day-num">${d.getDate()}</div>`;
+    cell.innerHTML = `<div class="day-name">${DAY[d.getDay()]}</div><div class="day-num">${d.getDate()}</div><div class="day-month">${MONTH[d.getMonth()]}</div>`;
     grid.appendChild(cell);
   });
 
@@ -289,13 +290,14 @@ function renderGroupGrid() {
     (p.availability || []).forEach(key => { countMap[key] = (countMap[key] || 0) + 1; });
   });
 
-  const DAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const DAY   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTH = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   grid.appendChild(el('div', 'grid-corner'));
   dates.forEach(date => {
     const d    = new Date(date + 'T00:00:00');
     const cell = el('div', 'date-header');
-    cell.innerHTML = `<div class="day-name">${DAY[d.getDay()]}</div><div class="day-num">${d.getDate()}</div>`;
+    cell.innerHTML = `<div class="day-name">${DAY[d.getDay()]}</div><div class="day-num">${d.getDate()}</div><div class="day-month">${MONTH[d.getMonth()]}</div>`;
     grid.appendChild(cell);
   });
 

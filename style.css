@@ -509,7 +509,7 @@ body {
 }
 
 .day-name {
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   font-weight: 700;
   color: var(--text-soft);
   text-transform: uppercase;
@@ -520,6 +520,14 @@ body {
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--text);
+}
+
+.day-month {
+  font-size: 0.55rem;
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .time-label {
@@ -641,6 +649,9 @@ body {
   width: 100%;
   box-shadow: var(--shadow-lg);
   animation: modalIn 0.22s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 @keyframes modalIn {
@@ -672,18 +683,17 @@ body {
   grid-template-columns: repeat(8, 1fr);
   gap: 0.3rem;
   margin-bottom: 1.4rem;
-  max-height: 180px;
-  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .emoji-option {
-  font-size: 1.55rem;
+  font-size: 1.4rem;
   text-align: center;
-  padding: 0.25rem;
+  padding: 0.3rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
   border: 2px solid transparent;
-  transition: all 0.13s;
+  transition: background 0.13s, border-color 0.13s, box-shadow 0.13s;
   line-height: 1.3;
   aspect-ratio: 1;
   display: flex;
@@ -691,11 +701,11 @@ body {
   justify-content: center;
 }
 
-.emoji-option:hover  { background: var(--pink-light); transform: scale(1.18); }
+.emoji-option:hover { background: var(--pink-light); }
 .emoji-option.selected {
   background: var(--pink-light);
   border-color: var(--bubblegum);
-  transform: scale(1.12);
+  box-shadow: 0 0 0 2px rgba(255, 105, 180, 0.35);
 }
 
 /* ─── CELL POPUP (tap to see who's free) ─── */
