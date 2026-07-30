@@ -26,7 +26,7 @@ let isDragging      = false;
 let dragMode        = null;
 let unsubscribe     = null;
 let popupTimer      = null;
-let isCreator       = false;
+let isVerified      = false;
 
 const params  = new URLSearchParams(window.location.search);
 const eventId = params.get('id');
@@ -354,6 +354,35 @@ function subscribeToParticipants() {
   );
 }
 
+// ── Passcode verification ─────────────────────────────────────
+
+function openPasscodeModal() {
+  document.getElementById('passcodeInput').value = '';
+  document.getElementById('passcodeModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('passcodeInput').focus(), 100);
+}
+
+function closePasscodeModal() {
+  document.getElementById('passcodeModal').style.display = 'none';
+}
+
+function verifyPasscode() {
+  const entered = document.getElementById('passcodeInput').value.trim();
+  if (!entered) { showToast('enter your passcode! 🔑'); return; }
+
+  if (entered === eventData.passcode) {
+    isVerified = true;
+    sessionStorage.setItem(`girlmeet_verified_${eventId}`, '1');
+    closePasscodeModal();
+    openEditModal();
+    showToast('welcome back, creator! ✨');
+  } else {
+    showToast('wrong passcode 😢 try again!');
+    document.getElementById('passcodeInput').value = '';
+    document.getElementById('passcodeInput').focus();
+  }
+}
+
 // ── Edit Event (creator only) ─────────────────────────────────
 
 function buildEditTimeOptions() {
@@ -499,8 +528,10 @@ async function init() {
     navigator.clipboard.writeText(window.location.href).then(() => showToast('link copied! 🌸'));
   });
 
-  isCreator = !!localStorage.getItem(`girlmeet_creator_${eventId}`);
-  if (isCreator) document.getElementById('editBtn').style.display = '';
+  if (eventData.passcode) {
+    document.getElementById('editBtn').style.display = '';
+    isVerified = !!sessionStorage.getItem(`girlmeet_verified_${eventId}`);
+  }
 
   const saved = loadSavedParticipant();
   if (saved) {
@@ -550,9 +581,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!e.target.closest('.group-cell')) hideCellPopup();
   });
 
-  document.getElementById('editBtn').addEventListener('click', openEditModal);
-  document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
+  document.getElementById('editBtn').addEventListener('click', () => {
+    if (isVerified) openEditModal();
+    else openPasscodeModal();
+  });
+  document.getElementById('passcodeSubmitBtn').addEventListener('click', verifyPasscode);
+  document.getElementById('passcodeCancelBtn').addEventListener('click', closePasscodeModal);
+  document.getElementById('passcodeInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') verifyPasscode();
+  });
   document.getElementById('saveEditBtn').addEventListener('click', saveEditEvent);
+  document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
 
   initModal();
   document.getElementById('saveBtn').addEventListener('click', saveAvailability);

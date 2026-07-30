@@ -72,13 +72,14 @@ async function createEvent() {
   const endDate   = document.getElementById('endDate').value;
   const startTime = document.getElementById('startTime').value;
   const endTime   = document.getElementById('endTime').value;
+  const passcode  = document.getElementById('passcode').value.trim();
 
   if (!name)                { showToast('give your event a name first! 🌸'); return; }
   if (!startDate)           { showToast('pick a start date! 📅'); return; }
   if (!endDate)             { showToast('pick an end date! 📅'); return; }
   if (startDate > endDate)  { showToast('end date must be after start date!'); return; }
-
   if (startTime >= endTime) { showToast('end time must be after start time!'); return; }
+  if (!passcode)            { showToast('set a passcode so you can edit later! 🔑'); return; }
 
   const btn = document.getElementById('createBtn');
   btn.textContent = 'creating... 🌸';
@@ -91,9 +92,9 @@ async function createEvent() {
       endDate,
       startTime,
       endTime,
+      passcode,
       createdAt: serverTimestamp()
     });
-    localStorage.setItem(`girlmeet_creator_${ref.id}`, '1');
     window.location.href = `event.html?id=${ref.id}`;
   } catch (err) {
     console.error(err);
