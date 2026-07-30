@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
   collection,
   onSnapshot,
   serverTimestamp
@@ -25,6 +26,7 @@ let isDragging      = false;
 let dragMode        = null;
 let unsubscribe     = null;
 let popupTimer      = null;
+let isCreator       = false;
 
 const params  = new URLSearchParams(window.location.search);
 const eventId = params.get('id');
@@ -102,9 +104,7 @@ function saveParticipantLocal(p) {
   localStorage.setItem(`girlmeet_${eventId}`, JSON.stringify(p));
 }
 
-// ── Drag-to-select via Pointer Events ────────────────────────
-// Pointer Events unify mouse + touch in one API and let us
-// prevent scroll conflicts on mobile with touch-action: none (CSS).
+// ── Drag-to-select (mouse) / tap-to-toggle (touch) ───────────
 
 function toggleCell(cell) {
   if (!cell?.dataset.key) return;
@@ -118,7 +118,7 @@ function toggleCell(cell) {
 }
 
 function setupDragHandlers() {
-  // pointermove fires for both mouse drag and touch drag
+  // Only fires during mouse drag (isDragging only set true for mouse)
   document.addEventListener('pointermove', e => {
     if (!isDragging) return;
     const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest('.my-cell');
@@ -139,15 +139,6 @@ function renderEventHeader() {
 
   const shareUrl = window.location.href;
   document.getElementById('shareUrl').textContent = shareUrl;
-  document.getElementById('copyBtn').addEventListener('click', () => {
-    navigator.clipboard.writeText(shareUrl).then(() => showToast('link copied! 🌸'));
-  });
-
-  ['eventHeaderSection','shareSection','participantsSection','panelsSection'].forEach(id => {
-    document.getElementById(id).style.display = '';
-  });
-  document.getElementById('saveBar').style.display     = '';
-  document.getElementById('loadingState').style.display = 'none';
 }
 
 // ── My availability grid ──────────────────────────────────────
@@ -243,7 +234,6 @@ function renderParticipants() {
 
 function heatColor(ratio, count) {
   if (count === 0) return '#F8FAFF';
-  // baby blue → vivid blue → indigo → deep purple — clearly distinct steps
   const stops = ['#BAE6FD', '#60A5FA', '#6366F1', '#8B5CF6'];
   const scaled = ratio * (stops.length - 1);
   const i = Math.min(Math.floor(scaled), stops.length - 2);
@@ -256,19 +246,16 @@ function lerpColor(c1, c2, t) {
   return `rgb(${lerp(r(c1,1),r(c2,1))},${lerp(r(c1,3),r(c2,3))},${lerp(r(c1,5),r(c2,5))})`;
 }
 
-// ── Group cell tap popup (works on mobile + desktop) ─────────
+// ── Group cell tap popup ──────────────────────────────────────
 
 function showCellPopup(e, count, n, names) {
   const popup   = document.getElementById('cellPopup');
   const content = document.getElementById('cellPopupContent');
 
-  if (count > 0) {
-    content.innerHTML = `<div class="popup-count">${count}/${n} free 🌸</div><div class="popup-names">${names}</div>`;
-  } else {
-    content.innerHTML = `<div class="popup-count">0/${n} free</div><div class="popup-names">no one free yet</div>`;
-  }
+  content.innerHTML = count > 0
+    ? `<div class="popup-count">${count}/${n} free 🌸</div><div class="popup-names">${names}</div>`
+    : `<div class="popup-count">0/${n} free</div><div class="popup-names">no one free yet</div>`;
 
-  // Position: below and centred on the tapped cell, clamped to viewport
   const rect   = e.currentTarget.getBoundingClientRect();
   const popupW = 180;
   let   left   = rect.left + rect.width / 2 - popupW / 2;
@@ -330,7 +317,6 @@ function renderGroupGrid() {
         .map(p => `${p.emoji} ${p.name}`)
         .join(', ');
 
-      // Desktop: title tooltip. Both: tap/click popup
       cell.title = count > 0 ? `${count}/${n} free: ${names}` : `0/${n} free`;
       cell.addEventListener('click', e => showCellPopup(e, count, n, names));
 
@@ -364,6 +350,67 @@ function subscribeToParticipants() {
     },
     err => console.error('Subscription error:', err)
   );
+}
+
+// ── Edit Event (creator only) ─────────────────────────────────
+
+function buildEditTimeOptions() {
+  ['editStartTime', 'editEndTime'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '';
+    for (let h = 0; h < 24; h++) {
+      for (let m = 0; m < 60; m += 30) {
+        const value = `${pad(h)}:${pad(m)}`;
+        sel.add(new Option(formatTime12(value), value));
+      }
+    }
+  });
+}
+
+function openEditModal() {
+  document.getElementById('editEventName').value = eventData.name;
+  document.getElementById('editStartDate').value = eventData.startDate;
+  document.getElementById('editEndDate').value   = eventData.endDate;
+  document.getElementById('editStartTime').value = eventData.startTime;
+  document.getElementById('editEndTime').value   = eventData.endTime;
+  document.getElementById('editModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').style.display = 'none';
+}
+
+async function saveEditEvent() {
+  const name      = document.getElementById('editEventName').value.trim();
+  const startDate = document.getElementById('editStartDate').value;
+  const endDate   = document.getElementById('editEndDate').value;
+  const startTime = document.getElementById('editStartTime').value;
+  const endTime   = document.getElementById('editEndTime').value;
+
+  if (!name)                { showToast('give your event a name! 🌸'); return; }
+  if (!startDate || !endDate) { showToast('pick valid dates! 📅'); return; }
+  if (startDate > endDate)  { showToast('end date must be after start date!'); return; }
+  if (startTime >= endTime) { showToast('end time must be after start time!'); return; }
+
+  const btn = document.getElementById('saveEditBtn');
+  btn.textContent = 'saving... 🌸';
+  btn.disabled    = true;
+
+  try {
+    await updateDoc(doc(db, 'events', eventId), { name, startDate, endDate, startTime, endTime });
+    eventData = { ...eventData, name, startDate, endDate, startTime, endTime };
+    renderEventHeader();
+    renderMyGrid();
+    renderGroupGrid();
+    closeEditModal();
+    showToast('event updated! ✨');
+  } catch (err) {
+    console.error(err);
+    showToast('update failed 😢 try again!');
+  } finally {
+    btn.textContent = 'save changes 🌸';
+    btn.disabled    = false;
+  }
 }
 
 // ── Modal ─────────────────────────────────────────────────────
@@ -440,6 +487,19 @@ async function init() {
   eventData = snap.data();
   renderEventHeader();
 
+  ['eventHeaderSection','shareSection','participantsSection','panelsSection'].forEach(id => {
+    document.getElementById(id).style.display = '';
+  });
+  document.getElementById('saveBar').style.display      = '';
+  document.getElementById('loadingState').style.display = 'none';
+
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText(window.location.href).then(() => showToast('link copied! 🌸'));
+  });
+
+  isCreator = !!localStorage.getItem(`girlmeet_creator_${eventId}`);
+  if (isCreator) document.getElementById('editBtn').style.display = '';
+
   const saved = loadSavedParticipant();
   if (saved) {
     myParticipant = saved;
@@ -458,22 +518,39 @@ async function init() {
 
 document.addEventListener('DOMContentLoaded', () => {
   setupDragHandlers();
+  buildEditTimeOptions();
 
-  // Pointer Events for drag — set up ONCE, works for mouse AND touch
+  // Update hint text based on input device
+  const isTouch = window.matchMedia('(pointer: coarse)').matches;
+  document.getElementById('myGridHint').textContent = isTouch
+    ? 'tap cells to mark when you\'re free'
+    : 'click & drag to mark when you\'re free';
+
   const grid = document.getElementById('myGrid');
   grid.addEventListener('pointerdown', e => {
     const cell = e.target.closest('.my-cell');
     if (!cell) return;
-    e.preventDefault();
-    isDragging = true;
-    dragMode   = cell.classList.contains('selected') ? 'deselect' : 'select';
-    toggleCell(cell);
+
+    if (e.pointerType === 'touch') {
+      // Touch: single tap toggles, scroll still works
+      dragMode = cell.classList.contains('selected') ? 'deselect' : 'select';
+      toggleCell(cell);
+    } else {
+      // Mouse: click + drag
+      e.preventDefault();
+      isDragging = true;
+      dragMode   = cell.classList.contains('selected') ? 'deselect' : 'select';
+      toggleCell(cell);
+    }
   });
 
-  // Dismiss popup when tapping outside a group cell
   document.addEventListener('click', e => {
     if (!e.target.closest('.group-cell')) hideCellPopup();
   });
+
+  document.getElementById('editBtn').addEventListener('click', openEditModal);
+  document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
+  document.getElementById('saveEditBtn').addEventListener('click', saveEditEvent);
 
   initModal();
   document.getElementById('saveBtn').addEventListener('click', saveAvailability);

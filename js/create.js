@@ -93,6 +93,7 @@ async function createEvent() {
       endTime,
       createdAt: serverTimestamp()
     });
+    localStorage.setItem(`girlmeet_creator_${ref.id}`, '1');
     window.location.href = `event.html?id=${ref.id}`;
   } catch (err) {
     console.error(err);
